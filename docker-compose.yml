@@ -12,11 +12,13 @@ services:
       MYSQL_DATABASE: "${MYSQL_DATABASE:-pkp}"
       MYSQL_USER: "${MYSQL_USER:-pkp}"
       MYSQL_PASSWORD: "${MYSQL_PASSWORD:-changeMePlease}"
-#    volumes:
-#      - ./volumes/db:/var/lib/mysql
-#      - ./volumes/logs/db:/var/log/mysql
-#      - ./volumes/config/db.charset.conf:/etc/mysql/conf.d/charset.cnf
-#      - ./volumes/db-import:/docker-entrypoint-initdb.d
+    volumes:
+      # Persistent database mounts remain optional.
+      # - ./volumes/db:/var/lib/mysql
+      # - ./volumes/logs/db:/var/log/mysql
+      # - ./volumes/config/db.charset.conf:/etc/mysql/conf.d/charset.cnf
+      # Initialization scripts run only for a new MariaDB data directory.
+      - ./tupj_db_dump.sql:/docker-entrypoint-initdb.d/01-tupj_db_dump.sql:ro
     networks:
       - inside
     restart: unless-stopped
@@ -31,6 +33,7 @@ services:
         PKP_TOOL: ${PKP_TOOL:-omp}
         PKP_VERSION: ${PKP_VERSION}
         WEB_SERVER: ${WEB_SERVER}
+        WEB_PATH: ${WEB_PATH}
         BUILD_PKP_APP_OS: ${BUILD_PKP_APP_OS}
     env_file:
       - .env
@@ -42,12 +45,16 @@ services:
     volumes:
       # Keep host and container sync:
       - /etc/localtime:/etc/localtime
+      - ./volumes/private:/var/files
+      - ./volumes/plugins:/var/www/html/ojs/plugins
+      - ./volumes/public:/var/www/html/ojs/public
+      - ./volumes/config/pkp.config.inc.php:/var/www/html/ojs/config.inc.php
 #      - ./volumes/private:/var/www/files
-#      - ./volumes/public:/var/www/html/public
+#      - ./volumes/public:/var/www/html/ojs/public
 #      - ./volumes/logs/app:/var/log/apache2
 #      # WARNING: You can only enable file-volumes if file exists in the container.
-#      - ./volumes/config/pkp.config.inc.php:/var/www/html/config.inc.php
-#      - ./volumes/config/apache.htaccess:/var/www/html/.htaccess
+#      - ./volumes/config/pkp.config.inc.php:/var/www/html/ojs/config.inc.php
+#      - ./volumes/config/apache.htaccess:/var/www/html/ojs/.htaccess
       - ./volumes/config/php.custom.ini:/usr/local/etc/php/conf.d/custom.ini
 
     networks:

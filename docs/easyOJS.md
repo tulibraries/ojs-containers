@@ -93,7 +93,7 @@ you will be able to start a full OJS stack (web app + database containers) in 4 
     - _Uncheck_ "Create new database"
     - _Uncheck_ "Beacon"
 
-    And the  "Directory for uploads:" acording to your docker-compose.yml "/var/www/files"
+    And the  "Directory for uploads:" according to your docker-compose.yml "/var/files"
 
 | **TIP:**             |
 |:---------------------|
@@ -183,17 +183,17 @@ These are the usual volumes you will probably want to map:
 
 | Host                                    | Container  | Volume                                | Description                    |
 |:----------------------------------------|:----------:|:--------------------------------------|:-------------------------------|
-| ./volumes/public                        | app        | /var/www/html/public                  | All public files               |
-| ./volumes/private                       | app        | /var/www/files                        | All private files (uploads)    |
+| ./volumes/public                        | app        | /var/www/html/ojs/public             | All public files               |
+| ./volumes/private                       | app        | /var/files                            | All private files (uploads)    |
 | ./volumes/config/db.charset.conf        | db         | /etc/mysql/conf.d/charset.cnf         | mariaDB config file            |
-| ./volumes/config/pkp.config.inc.php     | app        | /var/www/html/config.inc.php          | OJS config file                |
+| ./volumes/config/pkp.config.inc.php     | app        | /var/www/html/ojs/config.inc.php     | OJS config file                |
 | ./volumes/config/php.custom.ini         | app        | /usr/local/etc/php/conf.d/custom.ini  | PHP custom.init                |
-| ./volumes/config/apache.htaccess        | app        | /var/www/html/.htaccess               | Apache2 htaccess               |
+| ./volumes/config/apache.htaccess        | app        | /var/www/html/ojs/.htaccess          | Apache2 htaccess               |
 | ./volumes/logs/app                      | app        | /var/log/apache2                      | Apache2 Logs                   |
 | ./volumes/logs/db                       | db         | /var/log/mysql                        | mariaDB Logs                   |
 | ./volumes/db                            | db         | /var/lib/mysql                        | mariaDB database content       |
 | ./volumes/db-import                     | db         | /docker-entrypoint-initdb.d           | DB init folder (with SQLs)     |
-| ./volumes/plugins                       | app        | /var/www/html/plugins                 | Ensure host plugins are sync with the ojs version |
+| ./volumes/plugins                       | app        | /var/www/html/ojs/plugins            | Ensure host plugins are sync with the ojs version |
 | /etc/localtime                          | app        | /etc/localtime                        | Sync clock with the host one.  |
 | TBD                                     | app        | /etc/ssl/apache2/server.pem           | SSL **crt** certificate        |
 | TBD                                     | app        | /etc/ssl/apache2/server.key           | SSL **key** certificate        |
@@ -239,7 +239,7 @@ The Dockerfile includes some scritps at "/usr/local/bin" to facilitate common op
 
 | Script               | Container  | Description                                                                                                           |
 |:---------------------|:----------:|:----------------------------------------------------------------------------------------------------------------------|
-| pkp-run-scheduled    | ojs        | Runs "php tools/runScheduledTasks.php". Called by cron every hour.                                                    |
+| pkp-run-scheduled    | ojs        | Runs OJS scheduled tasks, using the UsageStats task file when the OJS version provides it. Called by cron hourly.      |
 | pkp-cli-install      | ojs        | Uses curl to call the ojs install using pre-defined variables (experimental).                                         |
 | pkp-pre-start        | ojs        | Enforces some config variables and generates a self-signed cert based on ServerName.                                  |
 | pkp-upgrade          | ojs        | Runs "php tools/upgrade.php upgrade". (experimental: know issue when config.inc.php is a volume)                      |

@@ -3,6 +3,7 @@ ARG PKP_TOOL=ojs                           # Options are: ojs, omp, ops.
 ARG PKP_VERSION=3_3_0-21                   # Same as PKP's versions.
 ARG WEB_SERVER=php:8.2-apache              # Web server and PHP version
 ARG WEB_USER=www-data                      # Web user for web server (www-data,33)
+ARG WEB_PATH=/var/www/html/ojs              # OJS application directory
 ARG BUILD_PKP_APP_OS=alpine:3.22           # OS used to build (not run).  
 ARG BUILD_PKP_APP_PATH=/app                # Where app is built.
 ARG BUILD_LABEL=notset
@@ -105,6 +106,7 @@ ARG PKP_TOOL \
     PKP_VERSION \
     WEB_SERVER \
     WEB_USER \
+    WEB_PATH \
     BUILD_PKP_APP_PATH \
     BUILD_LABEL
 
@@ -120,14 +122,16 @@ LABEL io.containers.rootless="true"
 ENV SERVERNAME="localhost" \
     WWW_PATH_CONF="/etc/apache2/apache2.conf" \
     WWW_PATH_ROOT="/var/www" \
+    WEB_PATH="${WEB_PATH}" \
     HTTPS="on" \
     PKP_CLI_INSTALL="0" \
+    PKP_INSTALLED="Off" \
     PKP_DB_HOST="${PKP_DB_HOST:-db}" \
     PKP_DB_NAME="${PKP_DB_NAME:-pkp}" \
     PKP_DB_USER="${PKP_DB_USER:-pkp}" \
     PKP_DB_PASSWORD="${PKP_DB_PASSWORD:-changeMePlease}" \
     PKP_WEB_CONF="/etc/apache2/conf-enabled/pkp.conf" \
-    PKP_CONF="config.inc.php" \
+    PKP_CONF="${WEB_PATH}/config.inc.php" \
     PKP_CMD="/usr/local/bin/pkp-start"
 
 ENV PKP_RUNTIME_LIBS="\
@@ -182,7 +186,7 @@ COPY --from=pkp_build /usr/local/etc/php/conf.d /usr/local/etc/php/conf.d
 COPY --from=pkp_build /usr/local/bin/install-php-extensions /usr/local/bin/install-php-extensions
 
 # Set working directory
-WORKDIR ${WWW_PATH_ROOT}/html
+WORKDIR ${WEB_PATH}
 
 # Copy source code and configuration files
 COPY --from=pkp_code "${BUILD_PKP_APP_PATH}" .
@@ -197,12 +201,13 @@ COPY "volumes/config/apache.pkp.conf" "${PKP_WEB_CONF}"
 # - Set certificates
 # - Create container.version file
 RUN a2enmod rewrite ssl && \
-    mkdir -p /etc/ssl/apache2 "${WWW_PATH_ROOT}/files" /run/apache2 && \
+    mkdir -p /etc/ssl/apache2 /var/files "${WEB_PATH}" /run/apache2 && \
     \
     echo "log_errors = On" >> /usr/local/etc/php/conf.d/log-errors.ini && \
     echo "error_log = /dev/stderr" >> /usr/local/etc/php/conf.d/log-errors.ini && \
     \
     cp -a config.TEMPLATE.inc.php "${PKP_CONF}" && \
+    sed -i -e 's#^files_dir = files$#files_dir = /var/files#' "${PKP_CONF}" && \
     chown -R ${WEB_USER:-33}:${WEB_USER:-33} "${WWW_PATH_ROOT}" && \
     \
     echo "0 * * * *   pkp-run-scheduled" | crontab - && \
@@ -215,8 +220,8 @@ RUN a2enmod rewrite ssl && \
     \
     . /etc/os-release && \
     echo "${PKP_TOOL}-${PKP_VERSION} with ${WEB_SERVER} over ${ID}-${VERSION_ID} [build: $(date +%Y%m%d-%H%M%S)]" \
-        > "${WWW_PATH_ROOT}/container.version" && \
-    cat "${WWW_PATH_ROOT}/container.version" && \
+        > "${WEB_PATH}/container.version" && \
+    cat "${WEB_PATH}/container.version" && \
     \
     chmod +x "${PKP_CMD}"
 
@@ -224,7 +229,7 @@ RUN a2enmod rewrite ssl && \
 EXPOSE ${HTTP_PORT:-8080}
 EXPOSE ${HTTPS_PORT:-8443}
 
-VOLUME [ "${WWW_PATH_ROOT}/files", "${WWW_PATH_ROOT}/public" ]
+VOLUME [ "/var/files", "${WEB_PATH}/public" ]
 
 # Changing to a rootless user
 USER ${WEB_USER:-33} 

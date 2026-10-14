@@ -32,6 +32,15 @@ sed -i -e "s/restful_urls = Off/restful_urls = On/g" $PKP_CONF
 echo "sed -i -e \"s/enable_cdn = On/enable_cdn = Off/g\" $PKP_CONF"
 sed -i -e "s/enable_cdn = On/enable_cdn = Off/g" $PKP_CONF
 
+# Synchronize the generated OJS configuration with the container environment.
+sed -i \
+    -e "s/^installed = .*/installed = ${PKP_INSTALLED}/" \
+    -e "s/^host = .*/host = ${PKP_DB_HOST}/" \
+    -e "s/^username = .*/username = ${PKP_DB_USER}/" \
+    -e "s/^password = .*/password = ${PKP_DB_PASSWORD}/" \
+    -e "s/^name = .*/name = ${PKP_DB_NAME}/" \
+    "${PKP_CONF}"
+
 # Generate a self-signed cert based on ServerName
 if [ ! -f "$KEY_PATH" ] ||
    ! openssl x509 -in "$PEM_PATH" -noout -subject | grep -q "$SERVERNAME"; then

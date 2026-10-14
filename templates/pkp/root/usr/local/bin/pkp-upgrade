@@ -8,7 +8,7 @@ sed -i '/^installed/c\installed = Off' /tmp/config.inc.php
 cp -f /tmp/config.inc.php ${PKP_CONF}
 
 echo "[PKP Upgrade] Upgrading..."
-php /var/www/html/tools/upgrade.php upgrade
+php "${WEB_PATH}/tools/upgrade.php" upgrade
 
 echo "[PKP Upgrade] Changing to installed on"
 cp ${PKP_CONF} /tmp/config.inc.php
