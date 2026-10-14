@@ -55,7 +55,7 @@ services:
 #      # WARNING: You can only enable file-volumes if file exists in the container.
 #      - ./volumes/config/pkp.config.inc.php:/var/www/html/ojs/config.inc.php
 #      - ./volumes/config/apache.htaccess:/var/www/html/ojs/.htaccess
-      - ./volumes/config/php.custom.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./volumes/config/php.custom.ini:/etc/php85/conf.d/custom.ini
 
     networks:
       - inside

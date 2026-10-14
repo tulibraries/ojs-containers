@@ -187,7 +187,7 @@ These are the usual volumes you will probably want to map:
 | ./volumes/private                       | app        | /var/files                            | All private files (uploads)    |
 | ./volumes/config/db.charset.conf        | db         | /etc/mysql/conf.d/charset.cnf         | mariaDB config file            |
 | ./volumes/config/pkp.config.inc.php     | app        | /var/www/html/ojs/config.inc.php     | OJS config file                |
-| ./volumes/config/php.custom.ini         | app        | /usr/local/etc/php/conf.d/custom.ini  | PHP custom.init                |
+| ./volumes/config/php.custom.ini         | app        | /etc/php85/conf.d/custom.ini          | PHP custom.ini                 |
 | ./volumes/config/apache.htaccess        | app        | /var/www/html/ojs/.htaccess          | Apache2 htaccess               |
 | ./volumes/logs/app                      | app        | /var/log/apache2                      | Apache2 Logs                   |
 | ./volumes/logs/db                       | db         | /var/log/mysql                        | mariaDB Logs                   |

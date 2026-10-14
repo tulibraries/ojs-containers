@@ -1,105 +1,31 @@
 # Default build arguments (modify .env instead when "docker compose build")
 ARG PKP_TOOL=ojs                           # Options are: ojs, omp, ops.
 ARG PKP_VERSION=3_3_0-21                   # Same as PKP's versions.
-ARG WEB_SERVER=php:8.2-apache              # Web server and PHP version
-ARG WEB_USER=www-data                      # Web user for web server (www-data,33)
-ARG WEB_PATH=/var/www/html/ojs              # OJS application directory
-ARG BUILD_PKP_APP_OS=alpine:3.22           # OS used to build (not run).  
-ARG BUILD_PKP_APP_PATH=/app                # Where app is built.
+ARG WEB_SERVER=alpine:3.24                 # Alpine runtime base image.
+ARG WEB_USER=www-data                      # Web user for Apache/PHP.
+ARG WEB_PATH=/var/www/html/ojs              # OJS application directory.
+ARG BUILD_PKP_APP_OS=alpine:3.24           # OS used to download/build the app.
+ARG BUILD_PKP_APP_PATH=/app                # Where the app is built.
 ARG BUILD_LABEL=notset
 
 
 # Stage 1: Download PKP source code from released tarball.
 FROM ${BUILD_PKP_APP_OS} AS pkp_code
 
-ARG PKP_TOOL	    	\
-    PKP_VERSION		\
-    BUILD_PKP_APP_OS	\
+ARG PKP_TOOL \
+    PKP_VERSION \
     BUILD_PKP_APP_PATH
 
-RUN apk add --no-cache curl tar && \
+RUN apk add --no-cache curl gzip tar && \
     mkdir -p "${BUILD_PKP_APP_PATH}" && \
     cd "${BUILD_PKP_APP_PATH}" && \
     pkpVersion="${PKP_VERSION//_/.}" && \
     curl -sSL -O "https://pkp.sfu.ca/${PKP_TOOL}/download/${PKP_TOOL}-${pkpVersion}.tar.gz" && \
     tar --strip-components=1 -xzf "${PKP_TOOL}-${pkpVersion}.tar.gz" && \
-    rm ${PKP_TOOL}-${pkpVersion}.tar.gz
+    rm "${PKP_TOOL}-${pkpVersion}.tar.gz"
 
 
-# Stage 2: Build PHP extensions and dependencies
-FROM ${WEB_SERVER} AS pkp_build
-
-# Packages needed to build PHP extensions
-ENV PKP_DEPS="\
-    # Basic tools
-    curl \
-    unzip \
-    ca-certificates \
-    build-essential \
-\
-    # PHP extension development libraries
-    libzip-dev \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libwebp-dev \
-    libxml2-dev \
-    libxslt-dev \
-    libfreetype6-dev \
-\
-    # Modern image formats support
-    libavif-dev \
-\
-    # Graphics/X11 support
-    libxpm-dev \
-    libfontconfig1-dev \
-\
-    # PostgreSQL development
-    libpq-dev"
-
-ENV PHP_EXTENSIONS="\
-    # Image processing
-    gd \
-\ 
-    # Internationalization
-    gettext \
-    intl \
-\
-    # String handling
-    mbstring \
-\
-    # Database connectivity - MySQL/MariaDB
-    mysqli \
-    pdo_mysql \
-\    
-    # Database connectivity - PostgreSQL
-    pgsql \
-    pdo_pgsql \
-\    
-    # XML processing
-    xml \
-    xsl \
-\    
-    # Compression
-    zip \
-\
-    # PKP 3.5
-    bcmath \
-    ftp"
-
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends $PKP_DEPS && \
-    \
-    curl -sSLf https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions \
-    -o /usr/local/bin/install-php-extensions && \
-    chmod +x /usr/local/bin/install-php-extensions && \
-    install-php-extensions $PHP_EXTENSIONS && \
-    \
-    apt-get purge -y --auto-remove build-essential && \
-    rm -rf /var/lib/apt/lists/*
-
-
-# Stage 3: Final lightweight image
+# Stage 2: Alpine runtime with Apache and PHP 8.5.
 FROM ${WEB_SERVER}
 
 ARG PKP_TOOL \
@@ -115,124 +41,111 @@ LABEL org.opencontainers.image.vendor="Public Knowledge Project"
 LABEL org.opencontainers.image.title="PKP ${PKP_TOOL} Web Application"
 LABEL org.opencontainers.image.version="${PKP_VERSION}"
 LABEL org.opencontainers.image.revision="${PKP_TOOL}-${PKP_VERSION}#${BUILD_LABEL}"
-LABEL org.opencontainers.image.description="Runs a ${PKP_TOOL} application over ${WEB_SERVER} (with rootless support)."
+LABEL org.opencontainers.image.description="Runs a ${PKP_TOOL} application over ${WEB_SERVER} with Apache and PHP 8.5."
 LABEL io.containers.rootless="true"
 
-# Environment variables:
+# Alpine's PHP packages use /etc/php85 rather than the official PHP image's
+# /usr/local/etc/php layout.
 ENV SERVERNAME="localhost" \
-    WWW_PATH_CONF="/etc/apache2/apache2.conf" \
+    WWW_PATH_CONF="/etc/apache2/httpd.conf" \
     WWW_PATH_ROOT="/var/www" \
     WEB_PATH="${WEB_PATH}" \
     HTTPS="on" \
     PKP_CLI_INSTALL="0" \
+    PKP_CONFIG_SYNC="0" \
     PKP_INSTALLED="Off" \
     PKP_DB_HOST="${PKP_DB_HOST:-db}" \
     PKP_DB_NAME="${PKP_DB_NAME:-pkp}" \
     PKP_DB_USER="${PKP_DB_USER:-pkp}" \
     PKP_DB_PASSWORD="${PKP_DB_PASSWORD:-changeMePlease}" \
-    PKP_WEB_CONF="/etc/apache2/conf-enabled/pkp.conf" \
+    PKP_WEB_CONF="/etc/apache2/conf.d/pkp.conf" \
     PKP_CONF="${WEB_PATH}/config.inc.php" \
+    PHP_INI_DIR="/etc/php85/conf.d" \
     PKP_CMD="/usr/local/bin/pkp-start"
 
-ENV PKP_RUNTIME_LIBS="\
-    # Core libraries
-    libxml2 \
-    libxslt1.1 \
-    libicu-dev \
-    libzip-dev \
-\ 
-    # Image processing
-    libjpeg62-turbo \
-    libpng16-16 \
-    libfreetype6 \
-    libonig-dev \
-    libavif-dev \
-    libwebp-dev \
-\
-    # Graphics/X11 support
-    libxpm4 \
-    libfontconfig1 \
-    libx11-6 \
-\
-    # PostgreSQL runtime
-    libpq5"
+# php85-apache2 keeps the existing Apache architecture while the remaining
+# php85-* packages replace the extensions built by docker-php-ext-install.
+RUN apk add --no-cache \
+        apache2 \
+        apache2-ssl \
+        antiword \
+        ca-certificates \
+        curl \
+        ghostscript \
+        openssl \
+        poppler-utils \
+        tar \
+        unzip \
+        xz \
+        php85-apache2 \
+        php85-bcmath \
+        php85-curl \
+        php85-dom \
+        php85-fileinfo \
+        php85-ftp \
+        php85-gd \
+        php85-gettext \
+        php85-iconv \
+        php85-intl \
+        php85-mbstring \
+        php85-mysqli \
+        php85-openssl \
+        php85-pdo \
+        php85-pdo_mysql \
+        php85-pdo_pgsql \
+        php85-pgsql \
+        php85-phar \
+        php85-session \
+        php85-simplexml \
+        php85-sodium \
+        php85-tokenizer \
+        php85-xml \
+        php85-xmlreader \
+        php85-xmlwriter \
+        php85-xsl \
+        php85-zip
 
-ENV PKP_APPS="\
-    # If we like cron in the container (under discussion at #179)
-    cron \
-\
-    # PDF support: pdf2text
-    poppler-utils \
-\
-    # PostScript support: ps2acii
-    ghostscript \
-\
-    # Word suport: antiword
-    antiword "
+# Alpine's Apache package uses the apache user by default. The container is
+# deliberately run as www-data, so make Apache use the same unprivileged user.
+RUN if ! grep -q '^www-data:' /etc/group; then addgroup -S -g 82 www-data; fi && \
+    if ! grep -q '^www-data:' /etc/passwd; then adduser -S -D -H -u 82 -G www-data www-data; fi && \
+    sed -i 's/^#LoadModule rewrite_module/LoadModule rewrite_module/' "${WWW_PATH_CONF}" && \
+    sed -i -e "s/^User .*/User ${WEB_USER}/" \
+           -e "s/^Group .*/Group ${WEB_USER}/" \
+           "${WWW_PATH_CONF}" && \
+    printf '\nServerName localhost\n' >> "${WWW_PATH_CONF}" && \
+    mkdir -p /etc/ssl/apache2 /var/files "${WEB_PATH}" /run/apache2 "${PHP_INI_DIR}" /var/www/logs && \
+    ln -sf /dev/stdout /var/log/apache2/access.log && \
+    ln -sf /dev/stderr /var/log/apache2/error.log && \
+    ln -sf /dev/stdout /var/www/logs/access.log && \
+    ln -sf /dev/stderr /var/www/logs/error.log && \
+    chown -R "${WEB_USER}:${WEB_USER}" /var/log/apache2 /var/www/logs
 
-# Updates the OS and Installs required apps and runtime libraries
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y $PKP_APPS $PKP_RUNTIME_LIBS && \
-    \
-    apt-get purge -y --auto-remove build-essential && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-
-# Copy PHP extensions and configs from build stage
-COPY --from=pkp_build /usr/local/lib/php/extensions /usr/local/lib/php/extensions
-COPY --from=pkp_build /usr/local/etc/php/conf.d /usr/local/etc/php/conf.d
-COPY --from=pkp_build /usr/local/bin/install-php-extensions /usr/local/bin/install-php-extensions
-
-# Set working directory
+# Copy source code and configuration files.
 WORKDIR ${WEB_PATH}
-
-# Copy source code and configuration files
 COPY --from=pkp_code "${BUILD_PKP_APP_PATH}" .
 COPY "templates/pkp/root/" /
 COPY "volumes/config/apache.pkp.conf" "${PKP_WEB_CONF}"
 
-# Final configuration steps:
-# - Enable apache modules (rewrite, ssl)
-# - Redirect errors to stderr.
-# - Set a config.inc.php
-# - Add pkp-run-sheduled to crontab
-# - Set certificates
-# - Create container.version file
-RUN a2enmod rewrite ssl && \
-    mkdir -p /etc/ssl/apache2 /var/files "${WEB_PATH}" /run/apache2 && \
-    \
-    echo "log_errors = On" >> /usr/local/etc/php/conf.d/log-errors.ini && \
-    echo "error_log = /dev/stderr" >> /usr/local/etc/php/conf.d/log-errors.ini && \
-    \
-    cp -a config.TEMPLATE.inc.php "${PKP_CONF}" && \
+# Final configuration steps.
+RUN cp -a config.TEMPLATE.inc.php "${PKP_CONF}" && \
     sed -i -e 's#^files_dir = files$#files_dir = /var/files#' "${PKP_CONF}" && \
-    chown -R ${WEB_USER:-33}:${WEB_USER:-33} "${WWW_PATH_ROOT}" && \
-    \
-    echo "0 * * * *   pkp-run-scheduled" | crontab - && \
-    \
-    sed -i -e '\#<Directory />#,\#</Directory>#d' ${WWW_PATH_CONF} && \
-    sed -i -e "s/^ServerSignature.*/ServerSignature Off/" ${WWW_PATH_CONF} && \
-    \
-    mkdir -p /etc/ssl/apache2 && \
-    chown -R ${WEB_USER:-33}:${WEB_USER:-33} /etc/ssl/apache2 && \
-    \
+    chown -R "${WEB_USER}:${WEB_USER}" "${WWW_PATH_ROOT}" && \
+    chown "${WEB_USER}:${WEB_USER}" "${PKP_WEB_CONF}" && \
+    chown -R "${WEB_USER}:${WEB_USER}" /etc/ssl/apache2 /run/apache2 && \
+    chmod +x "${PKP_CMD}" && \
     . /etc/os-release && \
     echo "${PKP_TOOL}-${PKP_VERSION} with ${WEB_SERVER} over ${ID}-${VERSION_ID} [build: $(date +%Y%m%d-%H%M%S)]" \
         > "${WEB_PATH}/container.version" && \
-    cat "${WEB_PATH}/container.version" && \
-    \
-    chmod +x "${PKP_CMD}"
+    cat "${WEB_PATH}/container.version"
 
-# Expose web ports and declare volumes
+# Expose web ports and declare volumes.
 EXPOSE ${HTTP_PORT:-8080}
 EXPOSE ${HTTPS_PORT:-8443}
 
 VOLUME [ "/var/files", "${WEB_PATH}/public" ]
 
-# Changing to a rootless user
-USER ${WEB_USER:-33} 
+# Run the web process as an unprivileged user.
+USER ${WEB_USER}
 
-# Default start command
-CMD "${PKP_CMD}"
+CMD ["/usr/local/bin/pkp-start"]
