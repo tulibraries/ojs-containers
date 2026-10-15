@@ -190,4 +190,12 @@ If you have questions, improvements or you find any bug, you can report them in 
 
 This project is maintained by community members in their spare time, so support is limited and no detailed roadmap is available. Assistance is only provided for problems with the official images, not for general Docker usage or installation-specific issues.
 
-PRs are very welcome, but we would appreciate it if we can first talk about your proposals in the Issue Tracker or in [Discussions](https://github.com/tulibraries/ojs-containers/discussions).
+## Attribution and License
+
+This repository is derived from the [Public Knowledge Project containers repository](https://github.com/pkp/containers).
+
+The original project is Copyright © Public Knowledge Project and contributors and is licensed under the GNU General Public License, version 3 (GPL-3.0).
+
+This repository contains modifications maintained by Temple University Libraries, including the Alpine/PHP 8.5 runtime, project-specific configuration support, scheduled-task handling, and local development tooling.
+
+See [LICENSE](LICENSE) for the full license text.
