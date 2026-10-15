@@ -18,7 +18,7 @@ services:
       # - ./volumes/logs/db:/var/log/mysql
       # - ./volumes/config/db.charset.conf:/etc/mysql/conf.d/charset.cnf
       # Initialization scripts run only for a new MariaDB data directory.
-      - ./tupj_db_dump.sql:/docker-entrypoint-initdb.d/01-tupj_db_dump.sql:ro
+      - ./${DB_DUMP_FILE:-dump.sql}:/docker-entrypoint-initdb.d/01-db-dump.sql:ro
     networks:
       - inside
     restart: unless-stopped

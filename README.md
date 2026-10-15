@@ -9,12 +9,11 @@ You can use this project to RUN and learn about the official images, or to BUILD
 Features of the images:
 - [x] Able to generate images for different PKP tools.
 - [x] Multi-stage approach.
-- [x] Debian based.
+- [x] Alpine-based Apache/PHP 8.5 runtime for the current local build.
 - [x] Building from tarball.
 - [x] Updated list of php modules and OS libraries.
 - [x] Multiple helper scripts.
-- [x] Based on [official PHP images](https://hub.docker.com/_/php/).
-- [x] PHP extensions installed via [docker-php-extension-installer](https://github.com/mlocati/docker-php-extension-installer)
+- [x] PHP extensions installed from the Alpine package repositories.
 - [x] Rootless ready.
 - [x] MariaDB/MySQL/PostgreSQL support.
 - [x] Monitor security using Docker Scout (or Snyk or Trivy).
@@ -25,6 +24,55 @@ Features of the images:
 You can RUN the official images we publish and maintain on DockerHub, or BUILD your own.  
 The process is driven by the variables in your .env file, so it is important to adjust them according to your needs.  
 Your `docker compose up -d` will perform different actions (RUN or BUILD) depending on the value of IMAGE_SOURCE.
+
+## Managing multiple local OJS projects
+
+The Dockerfile and runtime are shared between projects such as TupJ and TuLJ. Project-specific settings should be kept in separate, ignored environment files rather than in the image or in the repository:
+
+```text
+.env.example       # safe template; commit this
+.env.tupj.local    # TupJ values; do not commit
+.env.tulj.local    # TuLJ values; do not commit
+```
+
+Create a project file from the template:
+
+```bash
+cp .env.example .env.tupj.local
+cp .env.example .env.tulj.local
+```
+
+At minimum, set these values separately for each project:
+
+```text
+DB_NAME
+DB_PASS
+DB_DUMP_FILE
+COMPOSE_PROJECT_NAME
+PROJECT_DOMAIN
+SERVERNAME
+```
+
+The shared values normally include `PKP_TOOL`, `PKP_VERSION`, `WEB_SERVER`, `BUILD_PKP_APP_OS`, and `WEB_PATH`. Database passwords and SQL dumps are intentionally excluded from Git. The current Compose file uses `DB_DUMP_FILE` to select the project-specific initialization dump.
+
+Use the selected environment file for every Compose operation:
+
+```bash
+docker compose --env-file .env.tupj.local up -d
+docker compose --env-file .env.tulj.local up -d
+```
+
+The included Makefile provides the same workflow with shorter commands:
+
+```bash
+make ENV_FILE=.env.tupj.local build
+make ENV_FILE=.env.tupj.local up
+make ENV_FILE=.env.tupj.local scheduled
+make ENV_FILE=.env.tupj.local jobs
+make ENV_FILE=.env.tupj.local logs
+```
+
+The Makefile does not parse or include the environment file itself; Docker Compose loads it. This avoids making passwords part of Make's variable-processing layer.
 
 ### To RUN images from dockerHub:
 

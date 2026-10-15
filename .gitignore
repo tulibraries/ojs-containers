@@ -3,3 +3,7 @@
 older
 volumes/*
 .env
+.env.*
+!.env.example
+*.sql
+.env
