@@ -9,12 +9,11 @@ You can use this project to RUN and learn about the official images, or to BUILD
 Features of the images:
 - [x] Able to generate images for different PKP tools.
 - [x] Multi-stage approach.
-- [x] Debian based.
+- [x] Alpine-based Apache/PHP 8.5 runtime for the current local build.
 - [x] Building from tarball.
 - [x] Updated list of php modules and OS libraries.
 - [x] Multiple helper scripts.
-- [x] Based on [official PHP images](https://hub.docker.com/_/php/).
-- [x] PHP extensions installed via [docker-php-extension-installer](https://github.com/mlocati/docker-php-extension-installer)
+- [x] PHP extensions installed from the Alpine package repositories.
 - [x] Rootless ready.
 - [x] MariaDB/MySQL/PostgreSQL support.
 - [x] Monitor security using Docker Scout (or Snyk or Trivy).
@@ -26,10 +25,72 @@ You can RUN the official images we publish and maintain on DockerHub, or BUILD y
 The process is driven by the variables in your .env file, so it is important to adjust them according to your needs.  
 Your `docker compose up -d` will perform different actions (RUN or BUILD) depending on the value of IMAGE_SOURCE.
 
+## Managing multiple local OJS projects
+
+The Dockerfile and runtime are shared between projects such as TupJ and TuLJ. Project-specific settings should be kept in separate, ignored environment files rather than in the image or in the repository:
+
+```text
+.env.example       # safe template; commit this
+.env.tupj.local    # TupJ values; do not commit
+.env.tulj.local    # TuLJ values; do not commit
+```
+
+Create a project file from the template:
+
+```bash
+cp .env.example .env.tupj.local
+cp .env.example .env.tulj.local
+```
+
+At minimum, set these values separately for each project:
+
+```text
+DB_NAME
+DB_PASS
+DB_DUMP_FILE
+OJS_CONFIG_FILE
+COMPOSE_PROJECT_NAME
+PROJECT_DOMAIN
+SERVERNAME
+```
+
+The shared values normally include `PKP_TOOL`, `PKP_VERSION`, `WEB_SERVER`, `BUILD_PKP_APP_OS`, and `WEB_PATH`. Database passwords, OJS configuration files, and SQL dumps are intentionally excluded from Git. The current Compose file uses `DB_DUMP_FILE` to select the project-specific initialization dump and `OJS_CONFIG_FILE` to select the project-specific OJS configuration.
+
+For example, the project environment files can point to different local configurations:
+
+```env
+# .env.tupj.local
+OJS_CONFIG_FILE="./volumes/config/tupj.config.inc.php"
+
+# .env.tulj.local
+OJS_CONFIG_FILE="./volumes/config/tulj.config.inc.php"
+```
+
+The selected file must exist before starting Compose. It is mounted into the container at `/var/www/html/ojs/config.inc.php`. If `OJS_CONFIG_FILE` is omitted, Compose keeps the existing default path `./volumes/config/pkp.config.inc.php`.
+
+Use the selected environment file for every Compose operation:
+
+```bash
+docker compose --env-file .env.tupj.local up -d
+docker compose --env-file .env.tulj.local up -d
+```
+
+The included Makefile provides the same workflow with shorter commands:
+
+```bash
+make ENV_FILE=.env.tupj.local build
+make ENV_FILE=.env.tupj.local up
+make ENV_FILE=.env.tupj.local scheduled
+make ENV_FILE=.env.tupj.local jobs
+make ENV_FILE=.env.tupj.local logs
+```
+
+The Makefile does not parse or include the environment file itself; Docker Compose loads it. This avoids making passwords part of Make's variable-processing layer.
+
 ### To RUN images from dockerHub:
 
 ```
-git clone https://github.com/pkp/containers.git journalName
+git clone https://github.com/tulibraries/ojs-containers.git journalName
 vim .env                         					# Set the IMAGE_SOURCE=docker-io [modify the rest of variables as desired]
 source .env && wget "https://github.com/pkp/${PKP_TOOL}/raw/${PKP_VERSION}/config.TEMPLATE.inc.php" -O ./volumes/config/pkp.config.inc.php
 sudo chown 33:33 ./volumes -R && sudo chown 999:999 ./volumes/db -R	    # Ensure folders got the proper permissions
@@ -39,12 +100,12 @@ docker compose up -d
 Now, you only need to open your browser to visit your new site and finish the installation with the variables you defined.
 Check your .env file to know the SERVERNAME, the HTTP_PORT, the DB parameters...
 
-You can find more detailed instructions on how to RUN the official images in [this document](https://github.com/pkp/containers/blob/main/docs/easyOJS.md).
+You can find more detailed instructions on how to RUN the official images in [this document](https://github.com/tulibraries/ojs-containers/blob/main/docs/easyOJS.md).
 
 ### To BUILD your own image:
 
 ```
-git clone https://github.com/pkp/containers.git
+git clone https://github.com/tulibraries/ojs-containers.git
 vim .env                         					# Set the IMAGE_SOURCE=local [modify the rest of variables as desired]
 # Run your own image:
 docker compose up -d
@@ -96,7 +157,7 @@ You need to keep in mind that only these three aliases and the most recently rel
 - If you have more relaxed needs, you may also use `stable` or `lts`. 
 - The `latest` tag will always be unstable, intended for development, and should never be used in production.  
 
-This naming convention is still under discussion and may change based on feedback in the [Discussions](https://github.com/pkp/containers/discussions/16) thread.  
+This naming convention is still under discussion and may change based on feedback in the [Discussions](https://github.com/tulibraries/ojs-containers/discussions) area.
 
 # ToDo
 
@@ -125,8 +186,16 @@ For example, images were initially built from `git` on Alpine; now we use the re
 In any case, changes are always kept to a minimum to help ensure backward compatibility.  
 An example of this is the nomenclature described in this README (with explicit tags and multiple aliases) will apply starting with versions 3.3.0-22, 3.4.0-10, and 3.5.0-2, while the ‘implicit’ nomenclature (equivalent to PKP's, e.g., `ojs:3_2_0-6`) has remained consistent since its inception and will continue to do so in the future. |
 
-If you have questions, improvements or you find any bug, you can report them in this repository's [issue tracker](https://github.com/pkp/containers/issues).
+If you have questions, improvements or you find any bug, you can report them in this repository's [issue tracker](https://github.com/tulibraries/ojs-containers/issues).
 
 This project is maintained by community members in their spare time, so support is limited and no detailed roadmap is available. Assistance is only provided for problems with the official images, not for general Docker usage or installation-specific issues.
 
-PRs are very welcome, but we would appreciate it if we can first talk about your proposals in the Issue Tracker or in [Discussions](https://github.com/pkp/containers/discussions).
+## Attribution and License
+
+This repository is derived from the [Public Knowledge Project containers repository](https://github.com/pkp/containers).
+
+The original project is Copyright © Public Knowledge Project and contributors and is licensed under the GNU General Public License, version 3 (GPL-3.0).
+
+This repository contains modifications maintained by Temple University Libraries, including the Alpine/PHP 8.5 runtime, project-specific configuration support, scheduled-task handling, and local development tooling.
+
+See [LICENSE](LICENSE) for the full license text.

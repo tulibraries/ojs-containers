@@ -8,9 +8,17 @@ pkp-pre-start
 
 # while :; do echo 'Hit CTRL+C'; sleep 5; done
 
-# Run the apache process in the foreground with the wrapper provided by the php-apache image.
-/usr/local/bin/apache2-foreground
-echo "--> [PKP Start] Started apache..."
+# Run Apache in the foreground. The official Debian PHP image provides
+# apache2-foreground; Alpine's apache2 package provides httpd directly.
+if command -v apache2-foreground >/dev/null 2>&1; then
+    exec apache2-foreground
+elif command -v httpd >/dev/null 2>&1; then
+    httpd -t || exit 1
+    exec httpd -D FOREGROUND
+else
+    echo "[PKP Start] Apache executable not found." >&2
+    exit 1
+fi
 
 # Apache logs will be redirected to the main docker container process's stdout, so # that it will show up in the container logs
 ##### ln -sf /dev/stderr /var/log/apache2/error.log

@@ -1,4 +1,28 @@
 #!/bin/sh
 
 echo "[PKP runScheduledTasks] running..."
-php /var/www/html/tools/runScheduledTasks.php
+
+WEB_PATH="${WEB_PATH:-/var/www/html/ojs}"
+SCHEDULED_TASKS="${WEB_PATH}/tools/runScheduledTasks.php"
+REGISTRY_TASKS="${WEB_PATH}/registry/scheduledTasks.xml"
+
+# Older OJS releases register usage statistics through a plugin task file.
+# OJS 3.4 runs UsageStatsLoader as a core scheduled task, so no task file is
+# needed (and the old usageStats plugin directory may not exist).
+for TASK_FILE in \
+    "${WEB_PATH}/plugins/generic/usageStats/scheduledTasksAutoStage.xml" \
+    "${WEB_PATH}/plugins/generic/usageStats/scheduledTasks.xml"
+do
+    if [ -r "${TASK_FILE}" ]; then
+        echo "[PKP runScheduledTasks] using ${TASK_FILE}"
+        exec php "${SCHEDULED_TASKS}" "${TASK_FILE}"
+    fi
+done
+
+if [ -r "${REGISTRY_TASKS}" ]; then
+    echo "[PKP runScheduledTasks] using ${REGISTRY_TASKS}"
+    exec php "${SCHEDULED_TASKS}" "${REGISTRY_TASKS}"
+fi
+
+echo "[PKP runScheduledTasks] using OJS default task registry"
+exec php "${SCHEDULED_TASKS}"

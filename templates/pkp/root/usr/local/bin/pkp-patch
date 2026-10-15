@@ -1,12 +1,11 @@
 #!/bin/sh
 
-WEB_ROOT_PATH="/var/www"
-PATCH_LIST_FILE="${WEB_ROOT_PATH}/files/patch.list"
+PATCH_LIST_FILE="/var/files/patch.list"
 
 # Gets the commit from the url, takes it as a patch and applies is the pkp's root folder.
 # $1: The full url of a gitHub/gitLab commit.
 applyPatch() {
-    cd "${WEB_ROOT_PATH}/html"
+    cd "${WEB_PATH}"
     echo "  Patching from: ${1}"
     wget ${1}.patch -O tmp.patch
     patch -p1 < tmp.patch

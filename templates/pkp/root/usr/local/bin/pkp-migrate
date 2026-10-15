@@ -4,19 +4,18 @@ echo "[PKP Migrate] Changing to installed off"
 sed -i '/^installed/c\installed = Off' ${PKP_CONF}
 
 echo "Checking migration folders and files..."
-if [ -d "/var/www/files/private" && -d \
-	"/var/www/files/public" && \
-	-f "/var/www/files/db-import/dump.sql" ]; then
+if [ -d "/var/files/private" ] && \
+	[ -d "/var/files/public" ] && \
+	[ -f "/var/files/db-import/dump.sql" ]; then
 
 	echo "Checking versions..."
-	php /var/www/html/tools/upgrade.php check
+	php "${WEB_PATH}/tools/upgrade.php" check
 
 	echo "Check former information..."
 	read -r -p "Are you sure you want to UPGRADE? [y/N] " response
 	if echo "$response" | grep -Eq '^[yY]([eE][sS])?$'; then
-	then
 		echo "[PKP Upgrade] Upgrading..."
-		php /var/www/html/tools/upgrade.php check
+		php "${WEB_PATH}/tools/upgrade.php" check
 
 		echo "[PKP Upgrade] Changing to installed on"
 		sed -i '/^installed/c\installed = On' ${PKP_CONF}

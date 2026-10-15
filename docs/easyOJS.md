@@ -9,7 +9,7 @@ This document, created in 2023 during the [Hannover Sprint](https://pkp.sfu.ca/2
 Be sure you properly installed `docker` and `docker-compose` and the `docker` service is running.
 
 ```
-git clone https://github.com/pkp/containers.git journalName && cd journalName
+git clone https://github.com/tulibraries/ojs-containers.git journalName && cd journalName
 rm docs templates -Rf                               # Delete folders that are not useful in production
 vim .env                         					# Set environment variables as you wish (ojs version, ports, url...)
 source .env && wget "https://github.com/pkp/${PKP_TOOL}/raw/${PKP_VERSION}/config.TEMPLATE.inc.php" -O ./volumes/config/pkp.config.inc.php
@@ -30,10 +30,10 @@ https://www.digitalocean.com/community/tutorials/how-to-install-docker-compose-o
 After this, notice that for all available versions, we provide a **docker-compose** configuration file so
 you will be able to start a full OJS stack (web app + database containers) in 4 easy steps:
 
-1. Clone this repository in your machine (if you prefer, you can also [download](https://github.com/pkp/containers/archive/master.zip) and unzip it):
+1. Clone this repository in your machine (if you prefer, you can also [download](https://github.com/tulibraries/ojs-containers/archive/refs/heads/main.zip) and unzip it):
 
     ```bash
-    git clone https://github.com/pkp/containers.git
+    git clone https://github.com/tulibraries/ojs-containers.git
     mv containers journalName && cd journalName
     ```
 
@@ -93,7 +93,7 @@ you will be able to start a full OJS stack (web app + database containers) in 4 
     - _Uncheck_ "Create new database"
     - _Uncheck_ "Beacon"
 
-    And the  "Directory for uploads:" acording to your docker-compose.yml "/var/www/files"
+    And the  "Directory for uploads:" according to your docker-compose.yml "/var/files"
 
 | **TIP:**             |
 |:---------------------|
@@ -130,7 +130,7 @@ To do this...
 
 ## Versions
 
-Before start, you would probably like to read about the Tag Naming Contentions](https://github.com/pkp/containers/tree/main?tab=readme-ov-file#tag-naming-conventions) used in this project.
+Before start, you would probably like to read about the Tag Naming Contentions](https://github.com/tulibraries/ojs-containers/tree/main?tab=readme-ov-file#tag-naming-conventions) used in this project.
 
 In the official images, the different TOOL versions could be running over different PHP versions (5 to 8...) acording to PKP's recommendations. 
 In future we are planning to add variants with different web servers ([Apache HTTP Server](https://httpd.apache.org/), [nginx](https://nginx.org/)) and tools.
@@ -183,17 +183,17 @@ These are the usual volumes you will probably want to map:
 
 | Host                                    | Container  | Volume                                | Description                    |
 |:----------------------------------------|:----------:|:--------------------------------------|:-------------------------------|
-| ./volumes/public                        | app        | /var/www/html/public                  | All public files               |
-| ./volumes/private                       | app        | /var/www/files                        | All private files (uploads)    |
+| ./volumes/public                        | app        | /var/www/html/ojs/public             | All public files               |
+| ./volumes/private                       | app        | /var/files                            | All private files (uploads)    |
 | ./volumes/config/db.charset.conf        | db         | /etc/mysql/conf.d/charset.cnf         | mariaDB config file            |
-| ./volumes/config/pkp.config.inc.php     | app        | /var/www/html/config.inc.php          | OJS config file                |
-| ./volumes/config/php.custom.ini         | app        | /usr/local/etc/php/conf.d/custom.ini  | PHP custom.init                |
-| ./volumes/config/apache.htaccess        | app        | /var/www/html/.htaccess               | Apache2 htaccess               |
+| `${OJS_CONFIG_FILE}`                    | app        | /var/www/html/ojs/config.inc.php     | Project-specific OJS config    |
+| ./volumes/config/php.custom.ini         | app        | /etc/php85/conf.d/custom.ini          | PHP custom.ini                 |
+| ./volumes/config/apache.htaccess        | app        | /var/www/html/ojs/.htaccess          | Apache2 htaccess               |
 | ./volumes/logs/app                      | app        | /var/log/apache2                      | Apache2 Logs                   |
 | ./volumes/logs/db                       | db         | /var/log/mysql                        | mariaDB Logs                   |
 | ./volumes/db                            | db         | /var/lib/mysql                        | mariaDB database content       |
 | ./volumes/db-import                     | db         | /docker-entrypoint-initdb.d           | DB init folder (with SQLs)     |
-| ./volumes/plugins                       | app        | /var/www/html/plugins                 | Ensure host plugins are sync with the ojs version |
+| ./volumes/plugins                       | app        | /var/www/html/ojs/plugins            | Ensure host plugins are sync with the ojs version |
 | /etc/localtime                          | app        | /etc/localtime                        | Sync clock with the host one.  |
 | TBD                                     | app        | /etc/ssl/apache2/server.pem           | SSL **crt** certificate        |
 | TBD                                     | app        | /etc/ssl/apache2/server.key           | SSL **key** certificate        |
@@ -239,7 +239,7 @@ The Dockerfile includes some scritps at "/usr/local/bin" to facilitate common op
 
 | Script               | Container  | Description                                                                                                           |
 |:---------------------|:----------:|:----------------------------------------------------------------------------------------------------------------------|
-| pkp-run-scheduled    | ojs        | Runs "php tools/runScheduledTasks.php". Called by cron every hour.                                                    |
+| pkp-run-scheduled    | ojs        | Runs OJS scheduled tasks, using the UsageStats task file when the OJS version provides it. Called by cron hourly.      |
 | pkp-cli-install      | ojs        | Uses curl to call the ojs install using pre-defined variables (experimental).                                         |
 | pkp-pre-start        | ojs        | Enforces some config variables and generates a self-signed cert based on ServerName.                                  |
 | pkp-upgrade          | ojs        | Runs "php tools/upgrade.php upgrade". (experimental: know issue when config.inc.php is a volume)                      |

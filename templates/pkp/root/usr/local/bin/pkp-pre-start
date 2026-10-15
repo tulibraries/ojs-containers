@@ -3,6 +3,7 @@
 KEY_PATH="/etc/ssl/apache2/server.key"
 PEM_PATH="/etc/ssl/apache2/server.pem"
 CHAIN_PATH="/etc/ssl/apache2/chain.pem"
+APACHE_CONF="${WWW_PATH_CONF:-/etc/apache2/httpd.conf}"
 
 echo "[PKP Pre-Start] Enforcing configs..."
 
@@ -14,6 +15,22 @@ echo "PKP_WEB_CONF:    [${PKP_WEB_CONF}]"
 echo "PKP_CLI_INSTALL: [${PKP_CLI_INSTALL}]"
 echo "=================================================="
 
+update_file() {
+    file="${1}"
+    shift
+
+    if [ ! -w "${file}" ]; then
+        echo "[PKP Pre-Start] Skipping non-writable file: ${file}"
+        return 0
+    fi
+
+    tmp_file="/tmp/pkp-pre-start.$$"
+    if sed "$@" "${file}" > "${tmp_file}"; then
+        cat "${tmp_file}" > "${file}"
+    fi
+    rm -f "${tmp_file}"
+}
+
 
 # Just in case somebody likes to change the document root:
 # sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
@@ -21,16 +38,28 @@ echo "=================================================="
 
 
 echo "sed -i -e \"s/www.example.com/${SERVERNAME}/g\" $PKP_WEB_CONF"
-sed -i -e "s/www.example.com/${SERVERNAME}/g" $PKP_WEB_CONF
+update_file "${PKP_WEB_CONF}" -e "s/www.example.com/${SERVERNAME}/g"
 
-echo "sed -i -e \"s/^#ServerName.*/ServerName ${SERVERNAME}/g\" /etc/apache2/apache2.conf"
-sed -i -e "s/^#ServerName.*/ServerName ${SERVERNAME}/g" /etc/apache2/apache2.conf
+echo "sed -i -e \"s/^#ServerName.*/ServerName ${SERVERNAME}/g\" ${APACHE_CONF}"
+update_file "${APACHE_CONF}" -e "s/^#ServerName.*/ServerName ${SERVERNAME}/g"
 
-echo "sed -i -e \"s/restful_urls = Off/restful_urls = On/g\" $PKP_CONF"
-sed -i -e "s/restful_urls = Off/restful_urls = On/g" $PKP_CONF
+if [ "${PKP_CONFIG_SYNC:-0}" = "1" ]; then
+    echo "sed -i -e \"s/restful_urls = Off/restful_urls = On/g\" $PKP_CONF"
+    update_file "${PKP_CONF}" -e "s/restful_urls = Off/restful_urls = On/g"
 
-echo "sed -i -e \"s/enable_cdn = On/enable_cdn = Off/g\" $PKP_CONF"
-sed -i -e "s/enable_cdn = On/enable_cdn = Off/g" $PKP_CONF
+    echo "sed -i -e \"s/enable_cdn = On/enable_cdn = Off/g\" $PKP_CONF"
+    update_file "${PKP_CONF}" -e "s/enable_cdn = On/enable_cdn = Off/g"
+
+    # Synchronize the generated OJS configuration with the container environment.
+    update_file "${PKP_CONF}" \
+        -e "s/^installed = .*/installed = ${PKP_INSTALLED}/" \
+        -e "s/^host = .*/host = ${PKP_DB_HOST}/" \
+        -e "s/^username = .*/username = ${PKP_DB_USER}/" \
+        -e "s/^password = .*/password = ${PKP_DB_PASSWORD}/" \
+        -e "s/^name = .*/name = ${PKP_DB_NAME}/"
+else
+    echo "[PKP Pre-Start] Leaving mounted OJS config unchanged."
+fi
 
 # Generate a self-signed cert based on ServerName
 if [ ! -f "$KEY_PATH" ] ||
