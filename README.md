@@ -68,11 +68,17 @@ OJS_CONFIG_FILE="./volumes/config/tulj.config.inc.php"
 
 The selected file must exist before starting Compose. It is mounted into the container at `/var/www/html/ojs/config.inc.php`. If `OJS_CONFIG_FILE` is omitted, Compose keeps the existing default path `./volumes/config/pkp.config.inc.php`.
 
-Use the selected environment file for every Compose operation:
+Use the selected environment file for every Compose operation through the Makefile:
 
 ```bash
-docker compose --env-file .env.tupj.local up -d
-docker compose --env-file .env.tulj.local up -d
+make ENV_FILE=.env.tupj.local up
+make ENV_FILE=.env.tulj.local up
+```
+
+If you invoke Compose directly, provide `ENV_FILE` as well as `--env-file` because the selected file is also injected into the containers:
+
+```bash
+ENV_FILE=.env.tupj.local docker compose --env-file .env.tupj.local up -d
 ```
 
 The included Makefile provides the same workflow with shorter commands:

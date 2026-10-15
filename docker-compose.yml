@@ -5,7 +5,7 @@ services:
   db:
     image: ${DB_VERSION:-mariadb:11.8}
     env_file:
-      - .env
+      - ${ENV_FILE:-.env}
     container_name: "pkp_db_${COMPOSE_PROJECT_NAME:-demo}"
     environment:
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-changeMePlease}"
@@ -36,7 +36,7 @@ services:
         WEB_PATH: ${WEB_PATH}
         BUILD_PKP_APP_OS: ${BUILD_PKP_APP_OS}
     env_file:
-      - .env
+      - ${ENV_FILE:-.env}
     container_name: "pkp_app_${COMPOSE_PROJECT_NAME:-demo}"
     hostname: "${COMPOSE_PROJECT_NAME:-demo}"
     ports:
