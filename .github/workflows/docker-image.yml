@@ -15,4 +15,4 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Build the Docker image
-      run: make build
+      run: make ENV_FILE=.env.example build

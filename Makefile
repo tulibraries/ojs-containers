@@ -1,9 +1,10 @@
 .DEFAULT_GOAL := help
 
-# Select the project-specific Compose environment file:
+# Select the project-specific Compose environment file. Local development uses
+# .env when present; fresh checkouts and CI fall back to the safe template.
 #   make ENV_FILE=.env.tupj.local up
-ENV_FILE ?= .env
-COMPOSE := docker compose --env-file $(ENV_FILE)
+ENV_FILE ?= $(if $(wildcard .env),.env,.env.example)
+COMPOSE := ENV_FILE=$(ENV_FILE) docker compose --env-file $(ENV_FILE)
 APP_SERVICE ?= app
 IMAGE ?= local/ojs:3_4_0-9
 
