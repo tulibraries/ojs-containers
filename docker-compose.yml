@@ -48,7 +48,7 @@ services:
       - ./volumes/private:/var/files
       - ./volumes/plugins:/var/www/html/ojs/plugins
       - ./volumes/public:/var/www/html/ojs/public
-      - ./volumes/config/pkp.config.inc.php:/var/www/html/ojs/config.inc.php
+      - ${OJS_CONFIG_FILE:-./volumes/config/pkp.config.inc.php}:/var/www/html/ojs/config.inc.php
 #      - ./volumes/private:/var/www/files
 #      - ./volumes/public:/var/www/html/ojs/public
 #      - ./volumes/logs/app:/var/log/apache2

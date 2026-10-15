@@ -48,12 +48,25 @@ At minimum, set these values separately for each project:
 DB_NAME
 DB_PASS
 DB_DUMP_FILE
+OJS_CONFIG_FILE
 COMPOSE_PROJECT_NAME
 PROJECT_DOMAIN
 SERVERNAME
 ```
 
-The shared values normally include `PKP_TOOL`, `PKP_VERSION`, `WEB_SERVER`, `BUILD_PKP_APP_OS`, and `WEB_PATH`. Database passwords and SQL dumps are intentionally excluded from Git. The current Compose file uses `DB_DUMP_FILE` to select the project-specific initialization dump.
+The shared values normally include `PKP_TOOL`, `PKP_VERSION`, `WEB_SERVER`, `BUILD_PKP_APP_OS`, and `WEB_PATH`. Database passwords, OJS configuration files, and SQL dumps are intentionally excluded from Git. The current Compose file uses `DB_DUMP_FILE` to select the project-specific initialization dump and `OJS_CONFIG_FILE` to select the project-specific OJS configuration.
+
+For example, the project environment files can point to different local configurations:
+
+```env
+# .env.tupj.local
+OJS_CONFIG_FILE="./volumes/config/tupj.config.inc.php"
+
+# .env.tulj.local
+OJS_CONFIG_FILE="./volumes/config/tulj.config.inc.php"
+```
+
+The selected file must exist before starting Compose. It is mounted into the container at `/var/www/html/ojs/config.inc.php`. If `OJS_CONFIG_FILE` is omitted, Compose keeps the existing default path `./volumes/config/pkp.config.inc.php`.
 
 Use the selected environment file for every Compose operation:
 
