@@ -9,7 +9,7 @@ This document, created in 2023 during the [Hannover Sprint](https://pkp.sfu.ca/2
 Be sure you properly installed `docker` and `docker-compose` and the `docker` service is running.
 
 ```
-git clone https://github.com/pkp/containers.git journalName && cd journalName
+git clone https://github.com/tulibraries/ojs-containers.git journalName && cd journalName
 rm docs templates -Rf                               # Delete folders that are not useful in production
 vim .env                         					# Set environment variables as you wish (ojs version, ports, url...)
 source .env && wget "https://github.com/pkp/${PKP_TOOL}/raw/${PKP_VERSION}/config.TEMPLATE.inc.php" -O ./volumes/config/pkp.config.inc.php
@@ -30,10 +30,10 @@ https://www.digitalocean.com/community/tutorials/how-to-install-docker-compose-o
 After this, notice that for all available versions, we provide a **docker-compose** configuration file so
 you will be able to start a full OJS stack (web app + database containers) in 4 easy steps:
 
-1. Clone this repository in your machine (if you prefer, you can also [download](https://github.com/pkp/containers/archive/master.zip) and unzip it):
+1. Clone this repository in your machine (if you prefer, you can also [download](https://github.com/tulibraries/ojs-containers/archive/refs/heads/main.zip) and unzip it):
 
     ```bash
-    git clone https://github.com/pkp/containers.git
+    git clone https://github.com/tulibraries/ojs-containers.git
     mv containers journalName && cd journalName
     ```
 
@@ -130,7 +130,7 @@ To do this...
 
 ## Versions
 
-Before start, you would probably like to read about the Tag Naming Contentions](https://github.com/pkp/containers/tree/main?tab=readme-ov-file#tag-naming-conventions) used in this project.
+Before start, you would probably like to read about the Tag Naming Contentions](https://github.com/tulibraries/ojs-containers/tree/main?tab=readme-ov-file#tag-naming-conventions) used in this project.
 
 In the official images, the different TOOL versions could be running over different PHP versions (5 to 8...) acording to PKP's recommendations. 
 In future we are planning to add variants with different web servers ([Apache HTTP Server](https://httpd.apache.org/), [nginx](https://nginx.org/)) and tools.
