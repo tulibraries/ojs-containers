@@ -18,6 +18,10 @@ Features of the images:
 - [x] MariaDB/MySQL/PostgreSQL support.
 - [x] Monitor security using Docker Scout (or Snyk or Trivy).
 
+Security findings that cannot be fixed without an OJS upgrade, and the audit
+requirements for persistent plugin volumes, are documented in
+[Documentation](Documentation/README.md).
+
 
 # Howto
 

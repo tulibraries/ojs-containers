@@ -1,12 +1,13 @@
 # Default build arguments (modify .env instead when "docker compose build")
 ARG PKP_TOOL=ojs                           # Options are: ojs, omp, ops.
-ARG PKP_VERSION=3_3_0-21                   # Same as PKP's versions.
+ARG PKP_VERSION=3_4_0-9                    # Same as PKP's versions.
 ARG WEB_SERVER=alpine:3.24                 # Alpine runtime base image.
 ARG WEB_USER=www-data                      # Web user for Apache/PHP.
 ARG WEB_PATH=/var/www/html/ojs              # OJS application directory.
 ARG BUILD_PKP_APP_OS=alpine:3.24           # OS used to download/build the app.
 ARG BUILD_PKP_APP_PATH=/app                # Where the app is built.
 ARG BUILD_LABEL=notset
+ARG PKP_UPDATE_DEPENDENCIES=1              # Refresh Composer/JS dependencies.
 
 
 # Stage 1: Download PKP source code from released tarball.
@@ -14,7 +15,8 @@ FROM ${BUILD_PKP_APP_OS} AS pkp_code
 
 ARG PKP_TOOL \
     PKP_VERSION \
-    BUILD_PKP_APP_PATH
+    BUILD_PKP_APP_PATH \
+    PKP_UPDATE_DEPENDENCIES
 
 RUN apk add --no-cache curl gzip tar && \
     mkdir -p "${BUILD_PKP_APP_PATH}" && \
@@ -23,6 +25,32 @@ RUN apk add --no-cache curl gzip tar && \
     curl -sSL -O "https://pkp.sfu.ca/${PKP_TOOL}/download/${PKP_TOOL}-${pkpVersion}.tar.gz" && \
     tar --strip-components=1 -xzf "${PKP_TOOL}-${pkpVersion}.tar.gz" && \
     rm "${PKP_TOOL}-${pkpVersion}.tar.gz"
+
+# The PKP release tarball contains a vendor tree that can lag behind current
+# security fixes. Refresh the dependencies against the PHP runtime used by
+# this image. The version changes below stay within the OJS 3.4 dependency
+# model, except for TinyMCE and firebase/php-jwt where the vulnerable major
+# versions have no fixed release in their old major line.
+RUN if [ "${PKP_UPDATE_DEPENDENCIES}" = "1" ]; then \
+        apk add --no-cache composer php85-dom php85-ftp php85-session php85-tokenizer php85-xml php85-xmlwriter && \
+        cd "${BUILD_PKP_APP_PATH}/lib/pkp" && \
+        composer config audit.block-insecure false && \
+        composer config platform.php 8.5 && \
+        sed -i \
+            -e 's#"adodb/adodb-php": "v5.20.18"#"adodb/adodb-php": "^5.22.10"#' \
+            -e 's#"firebase/php-jwt": "[^"]*"#"firebase/php-jwt": "^6.0"#' \
+            -e 's#"jquery/validation": "1.19.5"#"jquery/validation": "1.20.0"#' \
+            -e 's#"smarty/smarty": "v4.3.1"#"smarty/smarty": "^4.5.3"#' \
+            -e 's#"tinymce/tinymce": "[^"]*"#"tinymce/tinymce": "^7.9.3"#' \
+            -e 's#"version": "1.19.5"#"version": "1.20.0"#' \
+            -e 's#jquery-validation-1.19.5.tgz#jquery-validation-1.20.0.tgz#' \
+            composer.json && \
+        composer update --no-dev --no-interaction --no-progress --no-scripts --with-all-dependencies --ignore-platform-req=ext-* && \
+        cd "${BUILD_PKP_APP_PATH}/plugins/paymethod/paypal" && \
+        composer config audit.block-insecure false && \
+        composer config platform.php 8.5 && \
+        composer update --no-dev --no-interaction --no-progress --no-scripts --with-all-dependencies --ignore-platform-req=ext-*; \
+    fi
 
 
 # Stage 2: Alpine runtime with Apache and PHP 8.5.
@@ -65,7 +93,11 @@ ENV SERVERNAME="localhost" \
 
 # php85-apache2 keeps the existing Apache architecture while the remaining
 # php85-* packages replace the extensions built by docker-php-ext-install.
-RUN apk add --no-cache \
+# Upgrade packages inherited from the Alpine base image before installing the
+# runtime. This keeps security fixes such as zlib updates from being masked by
+# an older package already present in the base image.
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
         apache2 \
         apache2-ssl \
         antiword \
