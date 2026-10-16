@@ -33,7 +33,7 @@ rebuild:
 	$(COMPOSE) build --no-cache $(APP_SERVICE)
 
 up:
-	$(COMPOSE) up -d
+	$(COMPOSE) up
 
 down:
 	$(COMPOSE) down

@@ -1,0 +1,24 @@
+Cannot upgrade laravel/framework beyond 9.x while keeping OJS 3.4.0-9 without
+a broader OJS framework migration.
+
+Installed version: laravel/framework v9.52.22.
+Remaining findings reported by Trivy:
+
+- GHSA-5vg9-5847-vvmq (HIGH); fixed in 12.60.0 and 13.10.0.
+- CVE-2025-27515 (MEDIUM); fixed in 10.48.29, 11.44.1, and 12.1.1.
+- GHSA-crmm-hgp2-wgrp (MEDIUM); fixed in 12.61.1 and 13.12.0.
+- CVE-2026-102279 (LOW); fixed in 12.69.0 and 13.30.0.
+- CVE-2026-48019 (UNKNOWN); fixed in 10.0.0, 11.0.0, 12.0.0,
+  12.60.0, and 13.10.0.
+
+Reason: OJS 3.4's PKP dependency model requires Laravel 9.x. The available
+fixed versions require a Laravel major-version migration and are not safe
+drop-in dependency updates for this OJS release. That migration should be
+part of a future OJS upgrade and tested against the application and database
+migrations.
+
+Current mitigation: the image build updates laravel/framework to the newest
+compatible 9.x release and keeps the application on OJS 3.4.0-9. The finding
+remains documented rather than suppressed in the scanner.
+
+Reference: https://github.com/advisories/GHSA-5vg9-5847-vvmq
