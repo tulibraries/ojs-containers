@@ -1,17 +1,17 @@
 # Default build arguments (modify .env instead when "docker compose build")
 ARG PKP_TOOL=ojs                           # Options are: ojs, omp, ops.
 ARG PKP_VERSION=3_4_0-9                    # Same as PKP's versions.
-ARG WEB_SERVER=alpine:3.24                 # Alpine runtime base image.
+ARG WEB_SERVER=alpine:3.24                 # Alpine runtime base image; CI may override this with Harbor.
 ARG WEB_USER=www-data                      # Web user for Apache/PHP.
 ARG WEB_PATH=/var/www/html/ojs              # OJS application directory.
-ARG BUILD_PKP_APP_OS=alpine:3.24           # OS used to download/build the app.
+ARG BUILD_PKP_APP_OS=alpine:3.24           # OS used to download/build the app; CI may override this with Harbor.
 ARG BUILD_PKP_APP_PATH=/app                # Where the app is built.
 ARG BUILD_LABEL=notset
 ARG PKP_UPDATE_DEPENDENCIES=1              # Refresh Composer/JS dependencies.
 
 
 # Stage 1: Download PKP source code from released tarball.
-# hadolint ignore=DL3006
+# hadolint ignore=DL3006,DL3026
 FROM ${BUILD_PKP_APP_OS} AS pkp_code
 
 ARG PKP_TOOL \
@@ -61,7 +61,7 @@ RUN if [ "${PKP_UPDATE_DEPENDENCIES}" = "1" ]; then \
 
 
 # Stage 2: Alpine runtime with Apache and PHP 8.5.
-# hadolint ignore=DL3006
+# hadolint ignore=DL3006,DL3026
 FROM ${WEB_SERVER}
 
 ARG PKP_TOOL \

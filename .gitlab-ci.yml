@@ -12,8 +12,8 @@ variables:
   HELM_EXPERIMENTAL_OCI: "1"
   PKP_TOOL: "ojs"
   PKP_VERSION: "3_4_0-9"
-  WEB_SERVER: "alpine:3.24"
-  BUILD_PKP_APP_OS: "alpine:3.24"
+  WEB_SERVER: "harbor.k8s.temple.edu/library/alpine:3.24"
+  BUILD_PKP_APP_OS: "harbor.k8s.temple.edu/library/alpine:3.24"
 
 .export_variables: &export_variables
   - export VERSION="${PKP_VERSION}-${CI_COMMIT_SHORT_SHA}"
@@ -31,6 +31,7 @@ lint:
   extends: .lint_docker
   variables:
     DF: "Dockerfile"
+    IGNORE: "--ignore DL3064"
   except:
     - tags
 
