@@ -11,6 +11,7 @@ ARG PKP_UPDATE_DEPENDENCIES=1              # Refresh Composer/JS dependencies.
 
 
 # Stage 1: Download PKP source code from released tarball.
+# hadolint ignore=DL3006
 FROM ${BUILD_PKP_APP_OS} AS pkp_code
 
 ARG PKP_TOOL \
@@ -18,10 +19,13 @@ ARG PKP_TOOL \
     BUILD_PKP_APP_PATH \
     PKP_UPDATE_DEPENDENCIES
 
+# The base image is configurable and defaults to a versioned Alpine image.
+WORKDIR ${BUILD_PKP_APP_PATH}
+
+# Alpine package versions are intentionally resolved from the selected Alpine release.
+# hadolint ignore=DL3018
 RUN apk add --no-cache curl gzip tar && \
-    mkdir -p "${BUILD_PKP_APP_PATH}" && \
-    cd "${BUILD_PKP_APP_PATH}" && \
-    pkpVersion="${PKP_VERSION//_/.}" && \
+    pkpVersion=$(awk -v version="${PKP_VERSION}" 'BEGIN { gsub(/_/, ".", version); print version }') && \
     curl -sSL -O "https://pkp.sfu.ca/${PKP_TOOL}/download/${PKP_TOOL}-${pkpVersion}.tar.gz" && \
     tar --strip-components=1 -xzf "${PKP_TOOL}-${pkpVersion}.tar.gz" && \
     rm "${PKP_TOOL}-${pkpVersion}.tar.gz"
@@ -31,9 +35,13 @@ RUN apk add --no-cache curl gzip tar && \
 # this image. The version changes below stay within the OJS 3.4 dependency
 # model, except for TinyMCE and firebase/php-jwt where the vulnerable major
 # versions have no fixed release in their old major line.
+# Use WORKDIR and Composer's working-dir option so each command remains POSIX sh-compatible.
+WORKDIR ${BUILD_PKP_APP_PATH}/lib/pkp
+
+# Alpine package versions are intentionally resolved from the selected Alpine release.
+# hadolint ignore=DL3018
 RUN if [ "${PKP_UPDATE_DEPENDENCIES}" = "1" ]; then \
         apk add --no-cache composer php85-dom php85-ftp php85-session php85-tokenizer php85-xml php85-xmlwriter && \
-        cd "${BUILD_PKP_APP_PATH}/lib/pkp" && \
         composer config audit.block-insecure false && \
         composer config platform.php 8.5 && \
         sed -i \
@@ -46,14 +54,14 @@ RUN if [ "${PKP_UPDATE_DEPENDENCIES}" = "1" ]; then \
             -e 's#jquery-validation-1.19.5.tgz#jquery-validation-1.20.0.tgz#' \
             composer.json && \
         composer update --no-dev --no-interaction --no-progress --no-scripts --with-all-dependencies --ignore-platform-req=ext-* && \
-        cd "${BUILD_PKP_APP_PATH}/plugins/paymethod/paypal" && \
-        composer config audit.block-insecure false && \
-        composer config platform.php 8.5 && \
-        composer update --no-dev --no-interaction --no-progress --no-scripts --with-all-dependencies --ignore-platform-req=ext-*; \
+        composer --working-dir="${BUILD_PKP_APP_PATH}/plugins/paymethod/paypal" config audit.block-insecure false && \
+        composer --working-dir="${BUILD_PKP_APP_PATH}/plugins/paymethod/paypal" config platform.php 8.5 && \
+        composer --working-dir="${BUILD_PKP_APP_PATH}/plugins/paymethod/paypal" update --no-dev --no-interaction --no-progress --no-scripts --with-all-dependencies --ignore-platform-req=ext-*; \
     fi
 
 
 # Stage 2: Alpine runtime with Apache and PHP 8.5.
+# hadolint ignore=DL3006
 FROM ${WEB_SERVER}
 
 ARG PKP_TOOL \
@@ -96,6 +104,8 @@ ENV SERVERNAME="localhost" \
 # Upgrade packages inherited from the Alpine base image before installing the
 # runtime. This keeps security fixes such as zlib updates from being masked by
 # an older package already present in the base image.
+# Alpine package versions are intentionally resolved from the selected Alpine release.
+# hadolint ignore=DL3018
 RUN apk upgrade --no-cache && \
     apk add --no-cache \
         apache2 \
@@ -160,6 +170,8 @@ COPY "templates/pkp/root/" /
 COPY "volumes/config/apache.pkp.conf" "${PKP_WEB_CONF}"
 
 # Final configuration steps.
+# /etc/os-release is provided by the Alpine base image at build time.
+# hadolint ignore=SC1091
 RUN cp -a config.TEMPLATE.inc.php "${PKP_CONF}" && \
     sed -i -e 's#^files_dir = files$#files_dir = /var/files#' "${PKP_CONF}" && \
     chown -R "${WEB_USER}:${WEB_USER}" "${WWW_PATH_ROOT}" && \
@@ -172,8 +184,8 @@ RUN cp -a config.TEMPLATE.inc.php "${PKP_CONF}" && \
     cat "${WEB_PATH}/container.version"
 
 # Expose web ports and declare volumes.
-EXPOSE ${HTTP_PORT:-8080}
-EXPOSE ${HTTPS_PORT:-8443}
+EXPOSE 8080
+EXPOSE 8443
 
 VOLUME [ "/var/files", "${WEB_PATH}/public" ]
 

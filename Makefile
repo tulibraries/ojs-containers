@@ -58,3 +58,6 @@ jobs:
 
 scan:
 	trivy image --scanners vuln $(IMAGE)
+
+lint:
+	hadolint Dockerfile
