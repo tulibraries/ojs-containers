@@ -19,6 +19,11 @@ ARG PKP_TOOL \
     BUILD_PKP_APP_PATH \
     PKP_UPDATE_DEPENDENCIES
 
+# Harbor's mirrored base image may define a non-root default user; package and
+# dependency installation must run as root during the build.
+# hadolint ignore=DL3002,DL3066
+USER root
+
 # The base image is configurable and defaults to a versioned Alpine image.
 WORKDIR ${BUILD_PKP_APP_PATH}
 
@@ -71,6 +76,11 @@ ARG PKP_TOOL \
     WEB_PATH \
     BUILD_PKP_APP_PATH \
     BUILD_LABEL
+
+# Harbor's mirrored base image may define a non-root default user; install the
+# runtime packages as root before switching to www-data below.
+# hadolint ignore=DL3066
+USER root
 
 LABEL maintainer="Public Knowledge Project <marc.bria@uab.es>"
 LABEL org.opencontainers.image.vendor="Public Knowledge Project"
