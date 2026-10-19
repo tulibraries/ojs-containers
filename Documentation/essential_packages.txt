@@ -1,0 +1,2 @@
+firebase/php-jwt
+laravel/framework
