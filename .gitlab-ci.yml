@@ -1,0 +1,55 @@
+include:
+  - project: "infrastructure-engineering-shared/gitlab-ci-templates"
+    file:
+      - "lint_docker.yaml"
+      - "build_and_scan_docker.yaml"
+      - "kubectl_commands.yaml"
+      - "sast_scanning.yaml"
+
+variables:
+  IMAGE: "tulibraries/ojs"
+  HARBOR: "harbor.k8s.temple.edu"
+  HELM_EXPERIMENTAL_OCI: "1"
+  PKP_TOOL: "ojs"
+  PKP_VERSION: "3_4_0-9"
+  WEB_SERVER: "alpine:3.24"
+  BUILD_PKP_APP_OS: "alpine:3.24"
+
+.export_variables: &export_variables
+  - export VERSION="${PKP_VERSION}-${CI_COMMIT_SHORT_SHA}"
+
+before_script:
+  - *export_variables
+
+stages:
+  - lint
+  - build
+  - scan
+  - tag
+
+lint:
+  extends: .lint_docker
+  variables:
+    DF: "Dockerfile"
+  except:
+    - tags
+
+build:
+  stage: build
+  extends: .build_and_scan_image
+  variables:
+    DF: >-
+      Dockerfile
+      --build-arg PKP_TOOL=$PKP_TOOL
+      --build-arg PKP_VERSION=$PKP_VERSION
+      --build-arg WEB_SERVER=$WEB_SERVER
+      --build-arg BUILD_PKP_APP_OS=$BUILD_PKP_APP_OS
+      --no-cache
+  except:
+    - tags
+
+tag:
+  stage: tag
+  extends: .tag_image
+  except:
+    - tags
