@@ -182,7 +182,15 @@ COPY "volumes/config/apache.pkp.conf" "${PKP_WEB_CONF}"
 # Final configuration steps.
 # /etc/os-release is provided by the Alpine base image at build time.
 # hadolint ignore=SC1091
-RUN cp -a config.TEMPLATE.inc.php "${PKP_CONF}" && \
+RUN profile_form="${WEB_PATH}/lib/pkp/classes/user/form/PublicProfileForm.php" && \
+    grep -q 'uploadProfileImage' "${profile_form}" && \
+    if ! grep -Fq 'return false; /*Disable profile image uploading -- courtesy of TUL LTS 2020-12-17*/' "${profile_form}"; then \
+        profile_form_tmp="${profile_form}.tmp" && \
+        awk '{ print; if (!inserted && index($0, "uploadProfileImage")) { print "                return false; /*Disable profile image uploading -- courtesy of TUL LTS 2020-12-17*/"; inserted = 1 } } END { if (!inserted) exit 1 }' "${profile_form}" > "${profile_form_tmp}" && \
+        cp "${profile_form_tmp}" "${profile_form}" && \
+        rm -f "${profile_form_tmp}"; \
+    fi && \
+    cp -a config.TEMPLATE.inc.php "${PKP_CONF}" && \
     sed -i -e 's#^files_dir = files$#files_dir = /var/files#' "${PKP_CONF}" && \
     chown -R "${WEB_USER}:${WEB_USER}" "${WWW_PATH_ROOT}" && \
     chown "${WEB_USER}:${WEB_USER}" "${PKP_WEB_CONF}" && \
