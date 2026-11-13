@@ -37,9 +37,9 @@ RUN apk add --no-cache curl gzip tar && \
 
 # The PKP release tarball contains a vendor tree that can lag behind current
 # security fixes. Refresh the dependencies against the PHP runtime used by
-# this image. The version changes below stay within the OJS 3.4 dependency
-# model, except for TinyMCE and firebase/php-jwt where the vulnerable major
-# versions have no fixed release in their old major line.
+# this image. The version changes below stay within the OJS 3.4 dependency model.
+# TinyMCE is intentionally moved to the secure community 8.x line because the
+# 7.9.4 fix is commercial-only; firebase/php-jwt is moved to secure 6.x.
 # Use WORKDIR and Composer's working-dir option so each command remains POSIX sh-compatible.
 WORKDIR ${BUILD_PKP_APP_PATH}/lib/pkp
 
@@ -54,7 +54,7 @@ RUN if [ "${PKP_UPDATE_DEPENDENCIES}" = "1" ]; then \
             -e 's#"firebase/php-jwt": "[^"]*"#"firebase/php-jwt": "^6.0"#' \
             -e 's#"jquery/validation": "1.19.5"#"jquery/validation": "1.20.0"#' \
             -e 's#"smarty/smarty": "v4.3.1"#"smarty/smarty": "^4.5.3"#' \
-            -e 's#"tinymce/tinymce": "[^"]*"#"tinymce/tinymce": "^7.9.3"#' \
+            -e 's#"tinymce/tinymce": "[^"]*"#"tinymce/tinymce": "^8.9.3"#' \
             -e 's#"version": "1.19.5"#"version": "1.20.0"#' \
             -e 's#jquery-validation-1.19.5.tgz#jquery-validation-1.20.0.tgz#' \
             composer.json && \
